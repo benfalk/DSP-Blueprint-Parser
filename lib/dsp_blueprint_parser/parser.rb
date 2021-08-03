@@ -7,7 +7,7 @@ module DspBlueprintParser
 
     # @param [String] str_blueprint
     def initialize(str_blueprint)
-      @str_blueprint = str_blueprint
+      @data_sections = DataSections.new(str_blueprint)
     end
 
     # @return [BlueprintData]
@@ -34,25 +34,12 @@ module DspBlueprintParser
 
     # @return [Array<String>]
     def header_segments
-      @header_segments ||= begin
-        header_end = @str_blueprint.index('"')
-        header = @str_blueprint[10..header_end - 1]
-        header.split(',')
-      end
+      @header_segments ||= @data_sections.header_segments
     end
 
     # @return [BinaryReader]
     def reader
-      @reader ||= begin
-        header_end = @str_blueprint.index('"')
-        blueprint_end = @str_blueprint[header_end + 1..].index('"') + header_end
-        blueprint_compressed = @str_blueprint[header_end + 1..blueprint_end]
-
-        gz = Zlib::GzipReader.new(StringIO.new(Base64.decode64(blueprint_compressed)))
-        blueprint_decompressed = gz.each_byte.to_a
-
-        BinaryReader.new(blueprint_decompressed)
-      end
+      @reader ||= BinaryReader.new(@data_sections.decompressed_body)
     end
 
     # @param [BlueprintData] blueprint
